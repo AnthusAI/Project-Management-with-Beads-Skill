@@ -2,6 +2,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -68,36 +69,49 @@ def _hook_installed(repo: Path) -> bool:
     return any(m in content for m in markers)
 
 
-def _maybe_install_hooks(repo: Path, install: bool):
+def _maybe_install_hooks(repo: Path, install: Optional[bool], hooks_cmd: str):
     if _hook_installed(repo):
         return
+    cmd_parts = hooks_cmd.split()
     msg = (
-        f"Beads commit hooks not detected in {repo}. "
-        f"Install with: {' '.join(HOOK_INSTALL_CMD)}"
+        f"Beads commit hooks not detected in {repo}.\n"
+        f"Install with: {' '.join(cmd_parts)}"
     )
     typer.secho(msg, fg="yellow")
-    if install:
-        try:
-            subprocess.check_call(HOOK_INSTALL_CMD, cwd=repo)
-            typer.secho("Installed Beads commit hooks.", fg="green")
-        except FileNotFoundError:
-            typer.secho(
-                "Cannot install hooks: command 'bd' not found. Install Beads CLI first.",
-                fg="red",
-            )
-        except subprocess.CalledProcessError as exc:
-            typer.secho(f"Hook installation failed (exit {exc.returncode}).", fg="red")
+
+    if install is None:
+        decision = typer.confirm("Install Beads commit hooks now?", default=True) if sys.stdin.isatty() else True
     else:
-        typer.echo(
-            "Re-run with --install-hooks to install automatically, or run the command above yourself."
+        decision = install
+
+    if not decision:
+        typer.echo("Skipping hook install. Run the command above later or re-run with --install-hooks.")
+        return
+
+    try:
+        subprocess.check_call(cmd_parts, cwd=repo)
+        typer.secho("Installed Beads commit hooks.", fg="green")
+    except FileNotFoundError:
+        typer.secho(
+            f"Cannot install hooks: command '{cmd_parts[0]}' not found. Install Beads CLI first.",
+            fg="red",
         )
+    except subprocess.CalledProcessError as exc:
+        typer.secho(f"Hook installation failed (exit {exc.returncode}).", fg="red")
 
 
 @app.command()
 def sync(
     repo: Optional[Path] = typer.Option(None, help="Path to repo (defaults to git root of cwd)"),
-    install_hooks: bool = typer.Option(
-        False, "--install-hooks", help="Also install Beads commit hooks if missing"
+    install_hooks: Optional[bool] = typer.Option(
+        None,
+        "--install-hooks/--no-install-hooks",
+        help="Install Beads commit hooks if missing (default: prompt, yes if non-interactive)",
+    ),
+    hooks_cmd: str = typer.Option(
+        "bd install-hooks",
+        "--hooks-cmd",
+        help="Command to install Beads hooks (space separated)",
     ),
 ):
     """Copy packaged skill into .agent-skills/<name>/SKILL.md"""
@@ -105,15 +119,22 @@ def sync(
     target = base / SKILL_REL_PATH / SKILL_FILE_NAME
     _write_atomic(target, _skill_bytes())
     typer.echo(f"Synced skill to {target}")
-    _maybe_install_hooks(base, install_hooks)
+    _maybe_install_hooks(base, install_hooks, hooks_cmd)
 
 
 @app.command()
 def inject(
     repo: Optional[Path] = typer.Option(None, help="Path to repo (defaults to git root of cwd)"),
     agents_file: str = typer.Option("AGENTS.md", help="Agents file relative to repo"),
-    install_hooks: bool = typer.Option(
-        False, "--install-hooks", help="Also install Beads commit hooks if missing"
+    install_hooks: Optional[bool] = typer.Option(
+        None,
+        "--install-hooks/--no-install-hooks",
+        help="Install Beads commit hooks if missing (default: prompt, yes if non-interactive)",
+    ),
+    hooks_cmd: str = typer.Option(
+        "bd install-hooks",
+        "--hooks-cmd",
+        help="Command to install Beads hooks (space separated)",
     ),
 ):
     """Insert or update managed block in AGENTS.md"""
@@ -137,12 +158,12 @@ def inject(
 
     path.write_text(new_text)
     typer.echo(f"Injected pointer into {path}")
-    _maybe_install_hooks(base, install_hooks)
+    _maybe_install_hooks(base, install_hooks, hooks_cmd)
 
 
 @app.command()
 def version():
-    typer.echo("0.1.2")
+    typer.echo("0.1.3")
 
 
 if __name__ == "__main__":
