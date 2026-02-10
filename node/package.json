@@ -10,5 +10,8 @@
   "files": ["bin", "data"],
   "dependencies": {
     "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "^10.0.1"
   }
 }

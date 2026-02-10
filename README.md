@@ -1,4 +1,5 @@
 # Project Management with Beads Skill
+[![Python Tests](https://github.com/AnthusAI/Project-Management-with-Beads-Skill/actions/workflows/python-tests.yml/badge.svg?branch=main)](https://github.com/AnthusAI/Project-Management-with-Beads-Skill/actions/workflows/python-tests.yml) [![Node Tests](https://github.com/AnthusAI/Project-Management-with-Beads-Skill/actions/workflows/node-tests.yml/badge.svg?branch=main)](https://github.com/AnthusAI/Project-Management-with-Beads-Skill/actions/workflows/node-tests.yml)
 
 Single-source skill for Beads/agent workflows. Provides Python and Node CLIs to sync the skill into each repo and inject a pointer into `AGENTS.md`.
 
@@ -31,5 +32,5 @@ Use skill at: .agent-skills/project-management-with-beads/SKILL.md
 ```
 
 ## Tests
-- Python: `pytest` (runs sync/inject in temp dir)
-- Node: `node test.js`
+- Python: `pip install .[test]` then `pytest` (unit) or `pytest -m bdd` (BDD feature)
+- Node: `npm install` then `node test.js` (unit) or `npx cucumber-js` (BDD feature)

@@ -26,8 +26,14 @@ def _git_root(start: Path) -> Path:
 
 
 def _skill_bytes() -> bytes:
-    with resources.files("agent_skills.data") \
-            .joinpath("skills", SKILL_NAME, SKILL_FILE_NAME).open("rb") as f:
+    # MultiplexedPath.joinpath only accepts a single segment, so chain calls.
+    with (
+        resources.files("agent_skills.data")
+        .joinpath("skills")
+        .joinpath(SKILL_NAME)
+        .joinpath(SKILL_FILE_NAME)
+        .open("rb")
+    ) as f:
         return f.read()
 
 
