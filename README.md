@@ -28,9 +28,15 @@ Single-source skill for Beads/agent workflows. Provides Python and Node CLIs to 
 ```
 <!-- AGENT-SKILL:START project-management-with-beads -->
 Use skill at: .agent-skills/project-management-with-beads/SKILL.md
+Why: Beads task management is MANDATORY; every task must live in Beads.
+When: Create/update the Beads task before coding; close it after the change lands.
+How: Follow the skill for workflow, implementation notes, and closure steps.
 <!-- AGENT-SKILL:END project-management-with-beads -->
 ```
 
 ## Tests
 - Python: `pip install .[test]` then `pytest` (unit) or `pytest -m bdd` (BDD feature)
 - Node: `npm install` then `node test.js` (unit) or `npx cucumber-js` (BDD feature)
+
+## Beads git hooks
+- CLIs can remind and install: add `--install-hooks` to `agent-skills sync|inject` or `beads-skill sync|inject`.

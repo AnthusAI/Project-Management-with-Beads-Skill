@@ -142,7 +142,7 @@ def inject(
 
 @app.command()
 def version():
-    typer.echo("0.1.1")
+    typer.echo("0.1.2")
 
 
 if __name__ == "__main__":
