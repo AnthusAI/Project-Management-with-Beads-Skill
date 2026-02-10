@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
+const { spawnSync } = require('child_process');
 
 const SKILL_NAME = 'project-management-with-beads';
 const SKILL_REL_PATH = path.join('.agent-skills', SKILL_NAME);
@@ -15,7 +16,10 @@ const POINTER_TEXT = [
   'When: Create/update the Beads task before coding; close it after the change lands.',
   'How: Follow the skill for workflow, implementation notes, and closure steps.',
 ].join('\n');
-const HOOK_INSTALL_CMD = ['bd', 'install-hooks'];
+const DEFAULT_HOOK_CMDS = [
+  ['bd', 'install-hooks'],
+  ['bd', 'hooks', 'install'],
+];
 
 const skillPath = path.join(__dirname, '..', 'data', 'skills', SKILL_NAME, SKILL_FILE_NAME);
 
@@ -40,6 +44,16 @@ function detectEol(text) {
   return text.includes('\r\n') ? '\r\n' : '\n';
 }
 
+function promptYesNo(message, defaultYes = true) {
+  if (!process.stdin.isTTY || process.env.CI) return defaultYes;
+  process.stdout.write(message);
+  const buf = Buffer.alloc(1024);
+  const bytes = fs.readSync(process.stdin.fd, buf, 0, buf.length, null);
+  const answer = buf.slice(0, bytes).toString().trim().toLowerCase();
+  if (!answer) return defaultYes;
+  return ['y', 'yes'].includes(answer);
+}
+
 function hookInstalled(repo) {
   const hook = path.join(repo, '.git/hooks/pre-commit');
   if (!fs.existsSync(hook)) return false;
@@ -51,21 +65,40 @@ function hookInstalled(repo) {
   }
 }
 
-function maybeInstallHooks(repo, install) {
+function maybeInstallHooks(repo, install, hooksCmd) {
   if (hookInstalled(repo)) return;
+  const cmdList = hooksCmd ? [hooksCmd.split(' ')] : DEFAULT_HOOK_CMDS;
   console.warn(
-    `Beads commit hooks not detected in ${repo}. Install with: ${HOOK_INSTALL_CMD.join(' ')}`
+    `Beads commit hooks not detected in ${repo}. Install with one of: ${cmdList
+      .map(c => c.join(' '))
+      .join(', ')}`
   );
-  if (install) {
-    try {
-      spawnSync(HOOK_INSTALL_CMD[0], HOOK_INSTALL_CMD.slice(1), { stdio: 'inherit', cwd: repo });
-      console.log('Installed Beads commit hooks.');
-    } catch (err) {
-      console.error("Cannot install hooks automatically; ensure 'bd' CLI is available.", err.message);
-    }
+
+  let decision;
+  if (install === undefined) {
+    decision = promptYesNo('Install Beads commit hooks now? [Y/n]: ', true);
   } else {
-    console.log('Re-run with --install-hooks to install automatically, or run the command above.');
+    decision = install;
   }
+
+  if (!decision) {
+    console.log('Skipping hook install. Re-run with --install-hooks or run the command above.');
+    return;
+  }
+
+  for (const cmdParts of cmdList) {
+    const res = spawnSync(cmdParts[0], cmdParts.slice(1), { stdio: 'inherit', cwd: repo });
+    if (res.error && res.error.code === 'ENOENT') {
+      console.error(`Cannot install hooks: command '${cmdParts[0]}' not found.`);
+      break;
+    }
+    if (res.status === 0) {
+      console.log(`Installed Beads commit hooks via: ${cmdParts.join(' ')}`);
+      return;
+    }
+    console.warn(`Hook install failed with '${cmdParts.join(' ')}' (exit ${res.status}). Trying next...`);
+  }
+  console.log('Hook installation did not succeed. Install manually and re-run if needed.');
 }
 
 function cmdSync(repo) {
@@ -74,9 +107,10 @@ function cmdSync(repo) {
   const data = fs.readFileSync(skillPath);
   writeAtomic(target, data);
   console.log(`Synced skill to ${target}`);
-  maybeInstallHooks(base, cmdSync.installHooks);
+  maybeInstallHooks(base, cmdSync.installHooks, cmdSync.hooksCmd);
 }
-cmdSync.installHooks = false;
+cmdSync.installHooks = undefined;
+cmdSync.hooksCmd = null;
 
 function cmdInject(repo, agentsFile) {
   const base = gitRoot(repo || process.cwd());
@@ -97,12 +131,13 @@ function cmdInject(repo, agentsFile) {
   }
   fs.writeFileSync(file, newText);
   console.log(`Injected pointer into ${file}`);
-  maybeInstallHooks(base, cmdInject.installHooks);
+  maybeInstallHooks(base, cmdInject.installHooks, cmdInject.hooksCmd);
 }
-cmdInject.installHooks = false;
+cmdInject.installHooks = undefined;
+cmdInject.hooksCmd = null;
 
 function cmdVersion() {
-  console.log('0.1.0');
+  console.log('0.1.4');
 }
 
 const argv = yargs(hideBin(process.argv))
@@ -112,17 +147,21 @@ const argv = yargs(hideBin(process.argv))
     y =>
       y
         .option('repo', { type: 'string' })
-        .option('install-hooks', { type: 'boolean', default: false, describe: 'Install Beads git hooks if missing' }),
+        .option('install-hooks', { type: 'boolean', describe: 'Install Beads git hooks if missing (default: prompt yes)' })
+        .option('hooks-cmd', { type: 'string', describe: 'Override command to install hooks' }),
     args => {
-      cmdSync.installHooks = !!args['install-hooks'];
+      cmdSync.installHooks = args['install-hooks'];
+      cmdSync.hooksCmd = args['hooks-cmd'] || null;
       cmdSync(args.repo);
     }
   )
   .command('inject', 'Inject pointer into AGENTS.md', y => y
     .option('repo', { type: 'string' })
     .option('agents-file', { type: 'string', default: 'AGENTS.md' })
-    .option('install-hooks', { type: 'boolean', default: false, describe: 'Install Beads git hooks if missing' }), args => {
-      cmdInject.installHooks = !!args['install-hooks'];
+    .option('install-hooks', { type: 'boolean', describe: 'Install Beads git hooks if missing (default: prompt yes)' })
+    .option('hooks-cmd', { type: 'string', describe: 'Override command to install hooks' }), args => {
+      cmdInject.installHooks = args['install-hooks'];
+      cmdInject.hooksCmd = args['hooks-cmd'] || null;
       cmdInject(args.repo, args['agents-file']);
     })
   .command('version', 'Print version', () => {}, cmdVersion)

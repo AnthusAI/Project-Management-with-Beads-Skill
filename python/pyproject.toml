@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "beads-skill"
-version = "0.1.3"
+version = "0.1.4"
 description = "Beads project management skill CLI (sync/inject)"
 authors = [{name = "Beads Maintainers"}]
 readme = "README.md"

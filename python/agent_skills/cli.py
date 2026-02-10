@@ -22,7 +22,10 @@ POINTER_TEXT = (
     "When: Create/update the Beads task before coding; close it only after the change lands.\n"
     "How: Follow the workflow in the skill for recording, implementation notes, and closure."
 )
-HOOK_INSTALL_CMD = ["bd", "install-hooks"]
+DEFAULT_HOOK_CMDS = [
+    ["bd", "install-hooks"],
+    ["bd", "hooks", "install"],
+]
 
 
 def _git_root(start: Path) -> Path:
@@ -69,13 +72,13 @@ def _hook_installed(repo: Path) -> bool:
     return any(m in content for m in markers)
 
 
-def _maybe_install_hooks(repo: Path, install: Optional[bool], hooks_cmd: str):
+def _maybe_install_hooks(repo: Path, install: Optional[bool], hooks_cmd: Optional[str]):
     if _hook_installed(repo):
         return
-    cmd_parts = hooks_cmd.split()
+    cmd_list = [hooks_cmd.split()] if hooks_cmd else DEFAULT_HOOK_CMDS
     msg = (
         f"Beads commit hooks not detected in {repo}.\n"
-        f"Install with: {' '.join(cmd_parts)}"
+        f"Install with one of: {', '.join(' '.join(cmd) for cmd in cmd_list)}"
     )
     typer.secho(msg, fg="yellow")
 
@@ -88,16 +91,24 @@ def _maybe_install_hooks(repo: Path, install: Optional[bool], hooks_cmd: str):
         typer.echo("Skipping hook install. Run the command above later or re-run with --install-hooks.")
         return
 
-    try:
-        subprocess.check_call(cmd_parts, cwd=repo)
-        typer.secho("Installed Beads commit hooks.", fg="green")
-    except FileNotFoundError:
-        typer.secho(
-            f"Cannot install hooks: command '{cmd_parts[0]}' not found. Install Beads CLI first.",
-            fg="red",
-        )
-    except subprocess.CalledProcessError as exc:
-        typer.secho(f"Hook installation failed (exit {exc.returncode}).", fg="red")
+    for cmd_parts in cmd_list:
+        try:
+            subprocess.check_call(cmd_parts, cwd=repo)
+            typer.secho(f"Installed Beads commit hooks via: {' '.join(cmd_parts)}", fg="green")
+            return
+        except FileNotFoundError:
+            typer.secho(
+                f"Cannot install hooks: command '{cmd_parts[0]}' not found. Install Beads CLI first.",
+                fg="red",
+            )
+            break
+        except subprocess.CalledProcessError as exc:
+            typer.secho(
+                f"Hook install failed with '{' '.join(cmd_parts)}' (exit {exc.returncode}).",
+                fg="red",
+            )
+            # try next fallback
+    typer.echo("Hook installation did not succeed. Install manually and re-run if needed.")
 
 
 @app.command()
@@ -108,10 +119,10 @@ def sync(
         "--install-hooks/--no-install-hooks",
         help="Install Beads commit hooks if missing (default: prompt, yes if non-interactive)",
     ),
-    hooks_cmd: str = typer.Option(
-        "bd install-hooks",
+    hooks_cmd: Optional[str] = typer.Option(
+        None,
         "--hooks-cmd",
-        help="Command to install Beads hooks (space separated)",
+        help="Override command to install Beads hooks (default: try common bd variants)",
     ),
 ):
     """Copy packaged skill into .agent-skills/<name>/SKILL.md"""
@@ -131,10 +142,10 @@ def inject(
         "--install-hooks/--no-install-hooks",
         help="Install Beads commit hooks if missing (default: prompt, yes if non-interactive)",
     ),
-    hooks_cmd: str = typer.Option(
-        "bd install-hooks",
+    hooks_cmd: Optional[str] = typer.Option(
+        None,
         "--hooks-cmd",
-        help="Command to install Beads hooks (space separated)",
+        help="Override command to install Beads hooks (default: try common bd variants)",
     ),
 ):
     """Insert or update managed block in AGENTS.md"""
@@ -163,7 +174,7 @@ def inject(
 
 @app.command()
 def version():
-    typer.echo("0.1.3")
+    typer.echo("0.1.4")
 
 
 if __name__ == "__main__":

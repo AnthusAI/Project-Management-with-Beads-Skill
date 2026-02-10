@@ -11,9 +11,8 @@ Single-source skill for Beads/agent workflows. Provides Python and Node CLIs to 
 - Install (GitHub, no PyPI yet):
   - `pip install "git+https://github.com/AnthusAI/Project-Management-with-Beads-Skill.git#subdirectory=python"`
 - Install (local checkout): `pip install .` (from `python/`)
-- Commands:
-  - `agent-skills sync [--repo PATH]`
-  - `agent-skills inject [--repo PATH] [--agents-file AGENTS.md]`
+- Commands (preferred): `beads-skill sync [--repo PATH]`, `beads-skill inject [--repo PATH] [--agents-file AGENTS.md]`
+- Back-compat alias: `agent-skills ...`
 - Defaults: repo auto-detected via `.git` from cwd; agents file defaults to `AGENTS.md`.
 
 ## Node CLI
@@ -39,4 +38,5 @@ How: Follow the skill for workflow, implementation notes, and closure steps.
 - Node: `npm install` then `node test.js` (unit) or `npx cucumber-js` (BDD feature)
 
 ## Beads git hooks
-- CLIs can remind and install: add `--install-hooks` to `agent-skills sync|inject` or `beads-skill sync|inject`.
+- CLIs will prompt to install hooks (default yes). Non-interactive runs auto-yes.
+- Override: `--install-hooks/--no-install-hooks`, change command with `--hooks-cmd "bd hooks install"`.
