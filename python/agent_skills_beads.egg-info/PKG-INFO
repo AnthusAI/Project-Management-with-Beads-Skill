@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: agent-skills-beads
+Version: 0.1.0
+Summary: Beads project management skill CLI (sync/inject)
+Author: Beads Maintainers
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: typer>=0.12
+
+Beads skill Python CLI packaging helper.

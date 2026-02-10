@@ -1,0 +1,14 @@
+{
+  "name": "beads-skill",
+  "version": "0.1.0",
+  "description": "Beads project management skill CLI (sync/inject)",
+  "bin": {
+    "beads-skill": "bin/cli.js"
+  },
+  "type": "commonjs",
+  "main": "bin/cli.js",
+  "files": ["bin", "data"],
+  "dependencies": {
+    "yargs": "^17.7.2"
+  }
+}
