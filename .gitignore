@@ -1,0 +1,11 @@
+# Node
+node/node_modules/
+
+# Python
+python/build/
+python/*.egg-info/
+__pycache__/
+.pytest_cache/
+
+# OS
+.DS_Store

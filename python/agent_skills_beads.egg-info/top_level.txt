@@ -1,3 +1,0 @@
-agent_skills
-build
-tests_cli
