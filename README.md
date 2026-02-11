@@ -12,6 +12,9 @@ Single-source skill for Beads/agent workflows. Provides Python and Node CLIs to 
   - `pip install "git+https://github.com/AnthusAI/Project-Management-with-Beads-Skill.git#subdirectory=python"`
 - Install (local checkout): `pip install .` (from `python/`)
 - Commands (preferred): `beads-skill sync [--repo PATH]`, `beads-skill inject [--repo PATH] [--agents-file AGENTS.md]`
+- Inject into README.md (instead of AGENTS.md):
+  - `beads-skill inject --repo <path> --agents-file README.md`
+- Typical flow: run `beads-skill sync` once per repo to copy the skill, then `beads-skill inject` to drop the managed block into your chosen file.
 - Back-compat alias: `agent-skills ...`
 - Defaults: repo auto-detected via `.git` from cwd; agents file defaults to `AGENTS.md`.
 

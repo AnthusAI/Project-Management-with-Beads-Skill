@@ -1,105 +1,42 @@
-# Springstack (Project Memory)
+# Project Management with Beads (Project Memory)
 
-**What:** React library for animated, stack-based navigation with breadcrumb morphing (React 18 + GSAP + TypeScript)
+**What:** Workflow rules for keeping engineering work tracked in Beads (project memory).
 
-**Repo:** Monorepo with `apps/demo` (reference impl), `packages/springstack` (npm library), `infra` (CDK), `features` (BDD tests)
+**Applies to:** Any repo using the Project Management with Beads skill.
 
-**Prerequisites:** Node 20+, AWS creds for deploy (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`), CI needs `NPM_TOKEN` + `GITHUB_TOKEN`
-
-**Deploy:** CloudFront + S3 in us-east-1. SPA routing via error responses (403/404 → index.html)
-
-**Tests:** Cucumber.js (`npm test`). Step defs in `features/step_definitions/`, support in `features/support/`. Tag `@skip` excludes scenarios. Config: `cucumber.js`
+**Prerequisites:** Beads CLI (`bd`) installed and authenticated; ability to create/update Beads tasks.
 
 **CRITICAL AGENT INSTRUCTION:** Never perform a `git commit` until the user explicitly tells you to do so. Changes are made to files only; commits are user-initiated only.
 
 ---
 
-## Development
+## Daily workflow
+1) Choose or create the Beads task before coding; assign yourself and move it to *In Progress*.
+2) Capture the goal and acceptance criteria in the task note.
+3) Run `beads-skill sync` to ensure `.agent-skills/project-management-with-beads/SKILL.md` is present; run `beads-skill inject` so the pointer block stays in the chosen file (default `AGENTS.md`).
+4) Install hooks if prompted: `bd hooks install` (or `bd install-hooks`) so Beads metadata is enforced on commits.
 
-```bash
-npm install
-npm run dev --workspace apps/demo
-```
+## While you work
+- Log decisions, blockers, and useful links (PRs, designs) in the Beads task comments.
+- If repo conventions allow, include the Beads task ID in branch names and PR titles for traceability.
+- When pausing, leave a short handoff comment in the task describing current status and next steps.
 
-## Build Demo
+## Before opening a PR
+- Verify acceptance criteria are met and note the tests you ran.
+- Update the Beads task with a concise summary and link to the PR/diff.
+- Ensure Beads hooks pass locally (`bd sync` if needed).
 
-```bash
-npm run build --workspace apps/demo
-```
+## After merge / completion
+- Move the task to Done/Closed.
+- Add a final note with the merged PR link and any follow-up tasks created.
+- Clean up local branches if appropriate.
 
-## Deploy Demo (CloudFront + S3)
+## Commands refresher
+- `beads-skill sync --repo <path>`: copy the skill into `.agent-skills/project-management-with-beads/SKILL.md`.
+- `beads-skill inject --repo <path> --agents-file AGENTS.md`: add/update the managed pointer block.
+- `bd hooks install` or `bd install-hooks`: install Beads git hooks.
+- `bd sync`: sync local repo state with Beads.
 
-### Prerequisites
-- AWS credentials configured (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
-- Verify credentials: `aws sts get-caller-identity`
-
-### Deployment Steps
-
-1. **Build the demo app:**
-   ```bash
-   npm run build --workspace apps/demo
-   ```
-
-2. **Deploy infrastructure:**
-   ```bash
-   npm run cdk:deploy --workspace infra -- --require-approval never
-   ```
-
-3. **Verify deployment:**
-   - Check CloudFront distribution is created in us-east-1
-   - Note the CloudFront URL from CDK output
-   - Wait 2-5 minutes for CloudFront distribution to fully deploy
-
-4. **Test the deployment:**
-   - Open the CloudFront URL in a browser
-   - Verify the demo loads correctly
-   - Test navigation and settings
-
-## Destroy Demo
-
-```bash
-npm run cdk:destroy --workspace infra
-```
-
-## Tests (BDD)
-
-```bash
-npm test
-```
-
-## Release (CI)
-
-- Releases are handled by GitHub Actions using **semantic-release**.
-- Uses **conventional commits** for versioning (fix: patch, feat: minor, BREAKING CHANGE: major).
-- CI runs `npm test` and then publishes `springstack` if tests pass.
-- Requires `NPM_TOKEN` secret.
-
-Notes:
-- The demo app is a reference implementation of the default Springstack behavior (no custom routing overrides).
-- SPA routing is handled by CloudFront error responses.
-
-## Landing the Plane (Session Completion)
-
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
-
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
-   ```bash
-   git pull --rebase
-   bd sync
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
-
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
+## Landing the plane (end of session)
+- Update the Beads task with status, remaining steps, and next actions.
+- Commit/push only when explicitly approved by the user.
